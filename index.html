@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pemilih Nama Acak Roda Berputar</title>
+    <style>
+      /* Gaya dasar untuk body */
+      body {
+        font-family: "Inter", Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background-color: #f0f2f5; /* Warna latar belakang yang lebih terang */
+        margin: 0;
+        padding: 20px;
+        box-sizing: border-box;
+        overflow-x: hidden; /* Mencegah scroll horizontal */
+      }
+      /* Kontainer utama untuk mengatur tata letak */
+      .main-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 900px; /* Lebar maksimum untuk tata letak yang baik */
+        background-color: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        box-sizing: border-box;
+      }
+      /* Bagian atas untuk judul dan instruksi */
+      .header-section {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 2.5em;
+        font-weight: 700;
+      }
+      .instruction-text {
+        color: #666;
+        font-size: 1.1em;
+        line-height: 1.6;
+      }
+      /* Kontainer untuk roda dan kontrol */
+      .wheel-controls-container {
+        display: flex;
+        flex-direction: column; /* Default ke kolom untuk mobile */
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        gap: 30px; /* Jarak antar elemen */
+      }
+      /* Gaya untuk area roda */
+      .wheel-area {
+        position: relative;
+        width: 350px; /* Ukuran dasar roda */
+        height: 350px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px; /* Jarak bawah */
+      }
+      canvas {
+        border: 5px solid #e0e0e0; /* Border di sekitar roda */
+        border-radius: 50%; /* Membuatnya bulat */
+        background-color: #fefefe;
+        box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.05); /* Bayangan dalam untuk efek kedalaman */
+      }
+      /* Penunjuk roda */
+      .pointer {
+        position: absolute;
+        top: -15px; /* Sesuaikan posisi penunjuk */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 20px solid transparent;
+        border-right: 20px solid transparent;
+        border-bottom: 30px solid #ff4c4c; /* Warna merah cerah untuk penunjuk */
+        z-index: 10; /* Pastikan di atas roda */
+        filter: drop-shadow(
+          0 5px 5px rgba(0, 0, 0, 0.2)
+        ); /* Bayangan untuk penunjuk */
+      }
+      /* Gaya untuk area input dan tombol */
+      .input-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        max-width: 350px; /* Lebar maksimum untuk input */
+      }
+      textarea {
+        width: calc(100% - 24px); /* Mengakomodasi padding */
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 1em;
+        resize: vertical;
+        min-height: 150px;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease;
+      }
+      textarea:focus {
+        border-color: #007bff;
+        outline: none;
+      }
+      .button-group {
+        display: flex;
+        flex-wrap: wrap; /* Memungkinkan tombol untuk wrap */
+        justify-content: center;
+        gap: 10px; /* Jarak antar tombol */
+      }
+      button {
+        flex-grow: 1; /* Tombol akan membesar untuk mengisi ruang */
+        max-width: 180px; /* Lebar maksimum untuk tombol */
+        background-color: #007bff;
+        color: white;
+        padding: 14px 25px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1.1em;
+        font-weight: bold;
+        transition: background-color 0.3s ease, transform 0.2s ease,
+          box-shadow 0.3s ease;
+        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+      }
+      button:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
+      }
+      button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+      }
+      button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      /* Gaya untuk div hasil */
+      #result {
+        margin-top: 30px;
+        font-size: 2.8em; /* Ukuran font lebih besar untuk hasil */
+        font-weight: bold;
+        color: #28a745; /* Warna hijau untuk hasil sukses */
+        min-height: 1.5em; /* Memastikan ada ruang untuk hasil */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        box-sizing: border-box;
+        word-break: break-word;
+        text-align: center;
+        transition: color 0.3s ease; /* Transisi warna */
+      }
+
+      /* Media queries untuk responsivitas */
+      /* Untuk tablet (potret) dan desktop kecil */
+      @media (min-width: 768px) {
+        .wheel-controls-container {
+          flex-direction: row; /* Berubah menjadi baris untuk desktop */
+          justify-content: space-around; /* Menyebarkan item */
+          align-items: flex-start; /* Sejajarkan di bagian atas */
+        }
+        .wheel-area {
+          width: 400px; /* Ukuran roda lebih besar di desktop */
+          height: 400px;
+          margin-bottom: 0;
+        }
+        .input-controls {
+          max-width: 400px; /* Lebar input lebih besar di desktop */
+        }
+        h1 {
+          font-size: 3em;
+        }
+        .instruction-text {
+          font-size: 1.2em;
+        }
+        #result {
+          font-size: 3.5em;
+        }
+      }
+      /* Untuk smartphone dan tablet kecil (potret) */
+      @media (max-width: 600px) {
+        .main-container {
+          padding: 20px;
+        }
+        h1 {
+          font-size: 2em;
+        }
+        .instruction-text {
+          font-size: 0.95em;
+        }
+        .wheel-area {
+          width: 300px; /* Ukuran roda lebih kecil untuk smartphone */
+          height: 300px;
+        }
+        textarea {
+          min-height: 100px;
+        }
+        button {
+          padding: 12px 20px;
+          font-size: 1em;
+        }
+        #result {
+          font-size: 2.2em;
+        }
+      }
+      /* Untuk smartphone yang sangat kecil */
+      @media (max-width: 480px) {
+        .wheel-area {
+          width: 280px; /* Ukuran roda lebih kecil lagi */
+          height: 280px;
+        }
+        h1 {
+          font-size: 1.8em;
+        }
+        .instruction-text {
+          font-size: 0.9em;
+        }
+        button {
+          padding: 10px 18px;
+          font-size: 0.9em;
+        }
+        #result {
+          font-size: 1.8em;
+        }
+      }
+    </style>
+    <!-- Tailwind CSS CDN untuk font Inter (jika tidak ada font-family Inter di sistem) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div class="main-container">
+      <div class="header-section">
+        <h1>Pemilih Nama Acak Roda Berputar</h1>
+        <p class="instruction-text">
+          Masukkan nama-nama di bawah ini, satu nama per baris. Klik 'Putar
+          Roda!' untuk memilih nama secara acak. Nama yang terpilih akan dihapus
+          dari daftar.
+        </p>
+      </div>
+
+      <div class="wheel-controls-container">
+        <div class="wheel-area">
+          <canvas id="wheelCanvas" width="400" height="400"></canvas>
+          <div class="pointer"></div>
+        </div>
+
+        <div class="input-controls">
+          <textarea
+            id="nameInput"
+            placeholder="Contoh:&#10;Alice&#10;Bob&#10;Charlie&#10;David&#10;Eve&#10;Frank&#10;Grace&#10;Heidi"
+          ></textarea>
+          <div class="button-group">
+            <button id="spinButton">Putar Roda!</button>
+            <button id="resetButton" style="background-color: #6c757d">
+              Reset Daftar
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      // Mendapatkan referensi ke elemen HTML
+      const nameInput = document.getElementById("nameInput");
+      const spinButton = document.getElementById("spinButton");
+      const resetButton = document.getElementById("resetButton");
+      const resultDiv = document.getElementById("result");
+      const canvas = document.getElementById("wheelCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Variabel untuk roda
+      const wheelRadius = canvas.width / 2 - 10; // Radius roda, dikurangi sedikit untuk border
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const pointerHeight = 30; // Tinggi penunjuk
+
+      let spinAngle = 0; // Sudut putaran roda saat ini
+      let spinTime = 0; // Waktu putaran yang telah berlalu
+      let spinTimeTotal = 0; // Total durasi putaran
+      let startAngle = 0; // Sudut awal untuk menggambar segmen
+
+      let names = []; // Daftar nama yang aktif (akan berkurang)
+      let originalNames = []; // Daftar nama asli dari textarea untuk reset
+
+      // Palet warna yang cerah dan bervariasi
+      const colors = [
+        "#FF6B6B",
+        "#4ECDC4",
+        "#45B7D1",
+        "#FFA07A",
+        "#98D8C8",
+        "#F7DC6F",
+        "#BB8FCE",
+        "#A9CCE3",
+        "#FADBD8",
+        "#D6EAF8",
+        "#82E0AA",
+        "#AF7AC5",
+        "#F5CBA7",
+        "#AED6F1",
+        "#F1948A",
+      ];
+
+      // Fungsi easing untuk efek perlambatan putaran (easeOutCubic)
+      function easeOutCubic(t) {
+        return --t * t * t + 1;
+      }
+
+      // Fungsi untuk memuat nama dari textarea
+      function loadNamesFromInput() {
+        originalNames = nameInput.value
+          .split("\n")
+          .map((name) => name.trim())
+          .filter((name) => name !== "");
+        names = [...originalNames]; // Salin nama asli ke daftar aktif
+        drawWheel(); // Gambar ulang roda
+        updateButtonStatus(); // Perbarui status tombol
+      }
+
+      // Fungsi untuk memperbarui status tombol
+      function updateButtonStatus() {
+        spinButton.disabled = names.length === 0;
+        resetButton.disabled = originalNames.length === 0;
+
+        if (names.length === 0 && originalNames.length > 0) {
+          resultDiv.textContent =
+            "Semua nama telah dipilih. Klik 'Reset Daftar' untuk memulai lagi!";
+          resultDiv.style.color = "#007bff";
+        } else if (names.length === 0 && originalNames.length === 0) {
+          resultDiv.textContent = "Mohon masukkan beberapa nama!";
+          resultDiv.style.color = "#dc3545";
+        } else {
+          resultDiv.style.color = "#28a745";
+        }
+      }
+
+      // Fungsi untuk menggambar roda
+      function drawWheel() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Bersihkan kanvas
+        ctx.strokeStyle = "#cccccc"; // Warna garis tepi segmen
+        ctx.lineWidth = 2; // Ketebalan garis tepi
+
+        // Pastikan ada nama sebelum menghitung arcPerName untuk menghindari pembagian dengan nol
+        if (names.length === 0) {
+          // Gambar lingkaran kosong atau pesan jika tidak ada nama
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, wheelRadius, 0, 2 * Math.PI, false);
+          ctx.fillStyle = "#f8f8f8";
+          ctx.fill();
+          ctx.strokeStyle = "#ccc";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.font = "bold 18px Inter, Arial, sans-serif";
+          ctx.fillStyle = "#666";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Tidak Ada Nama", centerX, centerY);
+          return; // Hentikan fungsi jika tidak ada nama
+        }
+
+        const arcPerName = (2 * Math.PI) / names.length; // Sudut setiap segmen
+
+        for (let i = 0; i < names.length; i++) {
+          const angle = startAngle + i * arcPerName;
+          const endAngle = angle + arcPerName;
+          const color = colors[i % colors.length]; // Pilih warna dari palet
+
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, wheelRadius, angle, endAngle, false);
+          ctx.lineTo(centerX, centerY);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.stroke(); // Gambar garis tepi
+
+          // Menggambar teks nama pada segmen
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(angle + arcPerName / 2); // Putar ke tengah segmen
+          ctx.fillStyle = "#333"; // Warna teks
+          ctx.font = "bold 16px Inter, Arial, sans-serif"; // Font teks
+          ctx.textAlign = "right"; // Sejajarkan teks ke kanan
+          ctx.textBaseline = "middle"; // Sejajarkan teks di tengah vertikal
+          ctx.fillText(names[i], wheelRadius - 15, 0); // Posisi teks
+          ctx.restore();
+        }
+
+        // Gambar lingkaran tengah
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI, false);
+        ctx.fillStyle = "#f8f8f8";
+        ctx.fill();
+        ctx.strokeStyle = "#ccc";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.font = "bold 14px Inter, Arial, sans-serif";
+        ctx.fillStyle = "#333";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("PUTAR", centerX, centerY);
+      }
+
+      // Fungsi untuk memulai animasi putaran
+      function spin() {
+        if (names.length === 0) {
+          updateButtonStatus();
+          return;
+        }
+
+        spinButton.disabled = true; // Nonaktifkan tombol saat berputar
+        resetButton.disabled = true;
+        resultDiv.textContent = ""; // Kosongkan hasil sebelumnya
+
+        // Acak putaran akhir untuk hasil yang berbeda setiap kali
+        const minRevolutions = 5; // Minimal 5 putaran penuh
+        const maxRevolutions = 10; // Maksimal 10 putaran penuh
+        const randomRevolutions =
+          Math.random() * (maxRevolutions - minRevolutions) + minRevolutions;
+        const finalAngleOffset = Math.random() * (2 * Math.PI); // Offset acak untuk berhenti di segmen mana pun
+
+        spinAngleStart = spinAngle; // Sudut awal putaran
+        spinTime = 0; // Reset waktu putaran
+        spinTimeTotal = 8000; // Total durasi putaran dalam milidetik (8 detik)
+
+        // Hitung sudut akhir yang akan dicapai roda
+        // Ini adalah sudut putaran awal + putaran penuh acak + offset acak untuk segmen
+        const targetAngle =
+          spinAngleStart + randomRevolutions * 2 * Math.PI + finalAngleOffset;
+
+        // Simpan targetAngle untuk digunakan dalam animasi
+        let totalRotation = targetAngle - spinAngleStart;
+
+        function animateSpin() {
+          spinTime += 20; // Tambahkan waktu yang berlalu (sekitar 60 FPS)
+          if (spinTime >= spinTimeTotal) {
+            spinTime = spinTimeTotal;
+          }
+
+          const easedTime = easeOutCubic(spinTime / spinTimeTotal);
+          startAngle = spinAngleStart + totalRotation * easedTime;
+
+          drawWheel(); // Gambar ulang roda dengan sudut baru
+
+          if (spinTime < spinTimeTotal) {
+            requestAnimationFrame(animateSpin); // Lanjutkan animasi
+          } else {
+            // Animasi selesai, tentukan pemenang
+            determineWinner();
+            spinButton.disabled = false; // Aktifkan kembali tombol
+            resetButton.disabled = false;
+          }
+        }
+        requestAnimationFrame(animateSpin); // Mulai animasi
+      }
+
+      // Fungsi untuk menentukan pemenang setelah putaran berhenti
+      function determineWinner() {
+        // Jika tidak ada nama, tidak ada pemenang
+        if (names.length === 0) {
+          updateButtonStatus();
+          return;
+        }
+
+        const arcPerName = (2 * Math.PI) / names.length;
+        // Hitung sudut yang ditunjuk oleh penunjuk (relatif terhadap 0)
+        // Penunjuk berada di atas (0 radian). Roda berputar berlawanan arah jarum jam.
+        // Kita perlu membalikkan sudut putaran dan menyesuaikannya.
+        let adjustedAngle =
+          (2 * Math.PI - (startAngle % (2 * Math.PI))) % (2 * Math.PI);
+
+        // Jika adjustedAngle negatif, tambahkan 2*PI untuk membuatnya positif
+        if (adjustedAngle < 0) {
+          adjustedAngle += 2 * Math.PI;
+        }
+
+        // Temukan indeks segmen yang sesuai dengan sudut penunjuk
+        let winningIndex = Math.floor(adjustedAngle / arcPerName);
+
+        // Pastikan winningIndex valid (ini penting jika names.length berubah saat berputar)
+        if (winningIndex >= names.length) {
+          winningIndex = names.length - 1;
+        }
+        if (winningIndex < 0) {
+          winningIndex = 0;
+        }
+
+        const winnerName = names[winningIndex];
+        resultDiv.textContent = winnerName;
+        resultDiv.style.color = "#28a745"; // Warna hijau untuk pemenang
+
+        // Hapus nama pemenang dari daftar
+        names.splice(winningIndex, 1);
+        drawWheel(); // Gambar ulang roda tanpa nama pemenang
+        updateButtonStatus(); // Perbarui status tombol
+      }
+
+      // Event listener untuk tombol 'Putar Roda!'
+      spinButton.addEventListener("click", spin);
+
+      // Event listener untuk tombol 'Reset Daftar'
+      resetButton.addEventListener("click", () => {
+        clearInterval(spinInterval); // Hentikan putaran jika sedang berjalan
+        resultDiv.classList.remove("spinning");
+        resultDiv.textContent = ""; // Kosongkan hasil
+
+        loadNamesFromInput(); // Muat ulang nama dari textarea
+        updateButtonStatus(); // Perbarui status tombol
+        resultDiv.textContent = "Daftar nama direset!";
+        resultDiv.style.color = "#007bff";
+        setTimeout(() => {
+          resultDiv.textContent = ""; // Hapus pesan setelah sebentar
+        }, 1500);
+      });
+
+      // Event listener untuk textarea untuk memperbarui daftar nama saat input berubah
+      nameInput.addEventListener("input", () => {
+        loadNamesFromInput(); // Muat ulang originalNames dan names
+        updateButtonStatus(); // Perbarui status tombol
+        resultDiv.textContent = ""; // Kosongkan hasil saat nama diubah
+        resultDiv.style.color = "#28a745"; // Reset warna
+      });
+
+      // Inisialisasi saat halaman dimuat
+      window.onload = () => {
+        loadNamesFromInput(); // Muat nama awal saat halaman dimuat
+        updateButtonStatus(); // Perbarui status tombol awal
+      };
+
+      // Responsivitas canvas
+      window.addEventListener("resize", () => {
+        // Panggil drawWheel() saat ukuran jendela berubah untuk memastikan gambar ulang yang benar.
+        // Ukuran canvas itu sendiri tetap, tetapi elemen CSS yang mengelilinginya akan menyesuaikan.
+        drawWheel();
+      });
+    </script>
+  </body>
+</html>
